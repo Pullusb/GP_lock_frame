@@ -20,13 +20,13 @@ Created by Samuel Bernou
 
 bl_info = {
     "name": "GP lock frame",
-    "description": "Paper mode, Lock viewport rotation, lock current frame, ease 2D still painting",
+    "description": "Paper mode: Lock viewport rotation + lock current frame = Easier 2D still painting",
     "author": "Samuel Bernou",
-    "version": (0, 1, 0),
+    "version": (0, 1, 1),
     "blender": (2, 83, 0),
-    "location": "View3D > topbar",
+    "location": "View3D > topbar corner",
     "warning": "",
-    "doc_url": "",
+    "doc_url": "https://github.com/Pullusb/GP_lock_frame",
     "category": "Object" }
 
 
@@ -39,7 +39,7 @@ class PAPERMOD_lock_time(bpy.types.Operator):
     bl_options = {"REGISTER"}#, "INTERNAL"
 
     def execute(self, context):
-        # addign current frame as lock
+        # adding current frame as lock
         context.scene.lockprop.holdframe = context.scene.frame_current
         # if already locked remove handle, else create it
         if not lock_time.__name__ in [hand.__name__ for hand in bpy.app.handlers.frame_change_pre]:
