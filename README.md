@@ -23,9 +23,18 @@ Sometimes you accidentally move in time and new grease pencil stroke create a ne
 Also in some session you can trigger accidentally the viewport rotation then have to remacth the view.  
 -> *lock view* option switch to pan-only mode (the shortcut to rotate becomes also a pan)
 
+## Limitation
+
+Because it use some hacks, it may not work well with multiple scenes (untested):
+ - the lock view use a global keymap options (same behavior on all scene).
+ - the lock time should work by scenes individually but the button may not be updated (untested).
+ - as a result both button icons may not show the right state in multi-scene blend file.
+
 ---
 
 ## Changelog:
-  
+  2020-05-23 v0.1.2:
+  - Fix: Apply saved locks at file opening or other blend loading (Locks were not applied even when showed as enabled at opening)
+
   2020-05-15 v0.1.1:
   - version 1

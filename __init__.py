@@ -22,7 +22,7 @@ bl_info = {
     "name": "GP lock frame",
     "description": "Paper mode: Lock viewport rotation + lock current frame = Easier 2D still painting",
     "author": "Samuel Bernou",
-    "version": (0, 1, 1),
+    "version": (0, 1, 2),
     "blender": (2, 83, 0),
     "location": "View3D > topbar corner",
     "warning": "",
@@ -31,7 +31,8 @@ bl_info = {
 
 
 import bpy
- 
+from bpy.app.handlers import persistent
+
 class PAPERMOD_lock_time(bpy.types.Operator):
     bl_idname = "papermod.lock_time"
     bl_label = "lock time"
@@ -39,19 +40,22 @@ class PAPERMOD_lock_time(bpy.types.Operator):
     bl_options = {"REGISTER"}#, "INTERNAL"
 
     def execute(self, context):
-        # adding current frame as lock
-        context.scene.lockprop.holdframe = context.scene.frame_current
-        # if already locked remove handle, else create it
-        if not lock_time.__name__ in [hand.__name__ for hand in bpy.app.handlers.frame_change_pre]:
-            bpy.app.handlers.frame_change_pre.append(lock_time)
-            context.scene.lockprop.time = True
-        else:
-            bpy.app.handlers.frame_change_pre.remove(lock_time)
-            context.scene.lockprop.time = False
-
+        lock_time_toggle(context)
         return {"FINISHED"}
 
-def lock_time(scene):
+def lock_time_toggle(context):
+    '''get a context and lock scene frame with a handler and update change'''
+    # adding current frame as lock
+    context.scene.lockprop.holdframe = context.scene.frame_current
+    # if already locked remove handle, else create it
+    if not lock_time_handle.__name__ in [hand.__name__ for hand in bpy.app.handlers.frame_change_pre]:
+        bpy.app.handlers.frame_change_pre.append(lock_time_handle)
+        context.scene.lockprop.time = True
+    else:
+        bpy.app.handlers.frame_change_pre.remove(lock_time_handle)
+        context.scene.lockprop.time = False
+
+def lock_time_handle(scene):
     # https://docs.blender.org/api/current/bpy.app.handlers.html
     scene.frame_current = scene.lockprop.holdframe
 
@@ -61,6 +65,7 @@ def lock_time(scene):
         ## triggered whenever time cursor move (not only at playback)
         # bpy.ops.wm.call_menu(name="PAPERMOD_MT_warning")
 
+"""
 ## optional warning menu for pop up (but no good method to detect if playback is triggered only)
 # class PAPERMOD_MT_warning(bpy.types.Menu):
 #     '''If playback attempt launch a helper'''
@@ -85,7 +90,7 @@ def lock_time(scene):
 #         layout.label(text='lock tools:')
 #         layout.operator(PAPERMOD_lock_time.bl_idname, text = "", icon = 'MOD_TIME', depress = context.scene.lockprop.time)
 #         layout.operator(PAPERMOD_lock_view.bl_idname, text = "", icon = 'LOCKVIEW_ON', depress = context.scene.lockprop.view)
-
+"""
 
 class PAPERMOD_lock_view(bpy.types.Operator):
     bl_idname = "papermod.lock_view"
@@ -107,7 +112,6 @@ class PAPERMOD_lock_view(bpy.types.Operator):
 
         return {"FINISHED"}
 
-
         
 def papermod_lock_buttons_UI(self, context):
     """papermod header buttons"""
@@ -119,6 +123,7 @@ def papermod_lock_buttons_UI(self, context):
 
     row.operator(PAPERMOD_lock_view.bl_idname,
     text = "", icon = 'LOCKVIEW_ON', depress = context.scene.lockprop.view)
+
 
 ### --- keymaps stuff
 
@@ -134,13 +139,20 @@ def unlock_orbit():
         rot.active = True
     else:
         print("not found: bpy.context.window_manager.keyconfigs.user.keymaps['3D View'].keymap_items.get('view3d.rotate')")
-    
+
+    # disable (pass if keymap was not registered yet)
+    if not bpy.context.window_manager.keyconfigs.addon.keymaps.get('Screen'):
+        # print("not found: bpy.context.window_manager.keyconfigs.addon.keymaps['Screen']")# Verbose-prints
+        return
     pan = bpy.context.window_manager.keyconfigs.addon.keymaps['Screen'].keymap_items.get('view3d.move')
     if pan:
         pan.active = False
     else:
-        print("not found: bpy.context.window_manager.keyconfigs.addon.keymaps['Screen'].keymap_items.get('view3d.move')")
+        # print("not found: bpy.context.window_manager.keyconfigs.addon.keymaps['Screen'].keymap_items.get('view3d.move')")# Verbose-prints
+        pass
 
+
+### === keymaps
 addon_keymaps = []
 
 def bind_keymap(): 
@@ -166,10 +178,38 @@ def bind_keymap():
         thekeymap.active = True
 
 def unbind_keymap():
+    if not bpy.context.window_manager.keyconfigs.addon.keymaps.get("Screen"):
+        # print('GP_lock_frame: Could not found Screen addon km to unbind custom pan kmi')# Verbose-prints
+        return
+    if not bpy.context.window_manager.keyconfigs.addon.keymaps['Screen'].keymap_items.get('view3d.move'):
+        # print('GP_lock_frame: Could not found view3d.move addon kmi in addon Screen to unbind custom pan')# Verbose-prints
+        return
     for km, kmi in addon_keymaps:
         km.keymap_items.remove(kmi)
     addon_keymaps.clear()
-    del addon_keymaps
+    # del addon_keymaps
+
+### keymaps/
+
+## --- handler
+# @bpy.app.handlers.persistent
+@persistent
+def update_state(dummy):
+    scene = bpy.context.scene
+    lockprop = scene.get('lockprop')
+    if not lockprop:
+        # print('lock property group not found')# Verbose-prints
+        return
+    lockprop = scene.lockprop
+    if lockprop.view:
+        lock_orbit()
+    else:
+        unlock_orbit()
+
+    if lockprop.time:#False is ok, file loaded reset the handlers
+        scene.lockprop.holdframe = scene.frame_current
+        if not lock_time_handle.__name__ in [hand.__name__ for hand in bpy.app.handlers.frame_change_pre]:
+            bpy.app.handlers.frame_change_pre.append(lock_time_handle)
 
 ## --- properties
 
@@ -189,18 +229,26 @@ PAPERMOD_PGT_props,
 )
 
 def register():
+    # print('\n++++++++++++++++ REGISTER')
     for cls in classes:
         bpy.utils.register_class(cls)
     bpy.types.VIEW3D_HT_header.append(papermod_lock_buttons_UI)
     bpy.types.Scene.lockprop = bpy.props.PointerProperty(type = PAPERMOD_PGT_props)
+    bpy.app.handlers.load_post.append(update_state)
+    # if context.scene.lockprop.view:
+    #     lock_orbit()
+    # print('++++++ END REGISTER\n')
 
 def unregister():
+    # print('\n--------------- UNREGISTER')
+    bpy.app.handlers.load_post.remove(update_state)
     unlock_orbit()#reactivate original settings before disabling
     for cls in reversed(classes):
         bpy.utils.unregister_class(cls)
     bpy.types.VIEW3D_HT_header.remove(papermod_lock_buttons_UI)
     unbind_keymap()
     del bpy.types.Scene.lockprop
+    # print('----- END UNREGISTER\n')
 
 if __name__ == "__main__":
     register()
