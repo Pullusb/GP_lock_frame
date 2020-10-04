@@ -22,7 +22,7 @@ bl_info = {
     "name": "GP lock frame",
     "description": "Paper mode: Lock viewport rotation + lock current frame = Easier 2D still painting",
     "author": "Samuel Bernou",
-    "version": (0, 1, 2),
+    "version": (0, 2, 0),
     "blender": (2, 83, 0),
     "location": "View3D > topbar corner",
     "warning": "",
@@ -51,9 +51,11 @@ def lock_time_toggle(context):
     if not lock_time_handle.__name__ in [hand.__name__ for hand in bpy.app.handlers.frame_change_pre]:
         bpy.app.handlers.frame_change_pre.append(lock_time_handle)
         context.scene.lockprop.time = True
+        lock_time()
     else:
         bpy.app.handlers.frame_change_pre.remove(lock_time_handle)
         context.scene.lockprop.time = False
+        unlock_time()
 
 def lock_time_handle(scene):
     # https://docs.blender.org/api/current/bpy.app.handlers.html
@@ -125,7 +127,68 @@ def papermod_lock_buttons_UI(self, context):
     text = "", icon = 'LOCKVIEW_ON', depress = context.scene.lockprop.view)
 
 
-### --- keymaps stuff
+
+### --- Time spacebar keymaps stuff
+
+def lock_time():
+    # deactivate default rotate keymap
+    bpy.context.window_manager.keyconfigs.user.keymaps['Frames'].keymap_items['screen.animation_play'].active = False
+    # bind (or activate if already binded) addon secondary keymap to use rotate cmd as pan
+    bind_time_keymap()
+
+def unlock_time():
+    play = bpy.context.window_manager.keyconfigs.user.keymaps['Frames'].keymap_items.get('screen.animation_play')
+    if play:
+        play.active = True
+    else:
+        print("not found: bpy.context.window_manager.keyconfigs.user.keymaps['Frames'].keymap_items.get('screen.animation_play')")
+
+    # disable (pass if keymap was not registered yet)
+    if not bpy.context.window_manager.keyconfigs.addon.keymaps.get('Frames'):
+        return
+    spacebar_play = bpy.context.window_manager.keyconfigs.addon.keymaps['Frames'].keymap_items.get('screen.animation_play')
+    if spacebar_play:
+        spacebar_play.active = False
+    else:
+        print("not found: .window_manager.keyconfigs.addon.keymaps['Frames'].keymap_items.get('screen.animation_play')")
+        pass
+
+### === keymaps
+
+addon_time_keymaps = []
+
+def bind_time_keymap(): 
+    ## add spacebar as third pan shortcut when time is locked (top for laptop) !
+    ## Check if hotkey has already been set, to avoid duplicates when auto creating hotkey
+    # km = bpy.context.window_manager.keyconfigs.addon.keymaps.get("3D View")
+    km = bpy.context.window_manager.keyconfigs.addon.keymaps.get("3D View")
+    if not km:
+        km = bpy.context.window_manager.keyconfigs.addon.keymaps.new(
+            "Screen", space_type='EMPTY', region_type='WINDOW')
+
+    thekeymap = km.keymap_items.get("view3d.move")
+    if not thekeymap:#"view3d.move" not in km.keymap_items:
+        ## OPT: Can check if spacebar is used by the user for this (skip if it's use gor somthing else...)
+        # kplay = bpy.context.window_manager.keyconfigs.user.keymaps['Frames'].keymap_items['screen.animation_play']
+        ## hardcoded :
+        kmi = km.keymap_items.new(idname='view3d.move', type='SPACE', value='PRESS')
+        addon_time_keymaps.append(km)
+        # addon_keymaps.append((km, kmi))
+    else:
+        thekeymap.active = True
+
+def unbind_time_keymap():
+    if not bpy.context.window_manager.keyconfigs.addon.keymaps.get("Frames"):
+        return
+    if not bpy.context.window_manager.keyconfigs.addon.keymaps['Frames'].keymap_items.get('screen.animation_play'):
+        return
+
+    for km in addon_time_keymaps:
+        for kmi in km.keymap_items:
+            km.keymap_items.remove(kmi)
+    addon_time_keymaps.clear()
+
+### --- Orbit keymaps stuff
 
 def lock_orbit():
     # deactivate default rotate keymap
@@ -152,7 +215,6 @@ def unlock_orbit():
         pass
 
 
-### === keymaps
 addon_keymaps = []
 
 def bind_keymap(): 
@@ -171,9 +233,10 @@ def bind_keymap():
         kmov = bpy.context.window_manager.keyconfigs.user.keymaps['3D View'].keymap_items['view3d.move']
         # print(kmov.idname, krot.type, krot.value, krot.any, krot.alt,krot.ctrl, krot.shift)
         kmi = km.keymap_items.new(idname=kmov.idname, type=krot.type , value=krot.value, any=krot.any, alt=krot.alt, ctrl=krot.ctrl, shift=krot.shift)
-        ## hardcoded
-        # kmi = km.keymap_items.new(idname='view3d.move', type='MIDDLEMOUSE' , value='PRESS')
-        addon_keymaps.append((km, kmi))
+        ## hardcoded : kmi = km.keymap_items.new(idname='view3d.move', type='MIDDLEMOUSE' , value='PRESS')
+
+        addon_keymaps.append(km)
+        # addon_keymaps.append((km, kmi))
     else:
         thekeymap.active = True
 
@@ -184,8 +247,10 @@ def unbind_keymap():
     if not bpy.context.window_manager.keyconfigs.addon.keymaps['Screen'].keymap_items.get('view3d.move'):
         # print('GP_lock_frame: Could not found view3d.move addon kmi in addon Screen to unbind custom pan')# Verbose-prints
         return
-    for km, kmi in addon_keymaps:
-        km.keymap_items.remove(kmi)
+
+    for km in addon_keymaps:
+        for kmi in km.keymap_items:
+            km.keymap_items.remove(kmi)
     addon_keymaps.clear()
     # del addon_keymaps
 
@@ -247,6 +312,7 @@ def unregister():
         bpy.utils.unregister_class(cls)
     bpy.types.VIEW3D_HT_header.remove(papermod_lock_buttons_UI)
     unbind_keymap()
+    unbind_time_keymap()
     del bpy.types.Scene.lockprop
     # print('----- END UNREGISTER\n')
 
