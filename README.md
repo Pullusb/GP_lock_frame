@@ -18,7 +18,8 @@ Actually it's not specific to Grease pencil, but it was made with single static 
 ## Why
 
 Sometimes you accidentally move in time and new grease pencil stroke create a new unwanted frame.  
--> *Time lock* option fix the current frame and disable playback
+-> *Time lock* option fix the current frame and disable playback (since 0.2.1 spacebar becomes another pan, like 2D painting software)  
+Note: Untested if spacebar is'nt used for `Play`.
 
 Also in some session you can trigger accidentally the viewport rotation then have to remacth the view.  
 -> *lock view* option switch to pan-only mode (the shortcut to rotate becomes also a pan)
@@ -34,9 +35,9 @@ Because it use some hacks, it may not work well with multiple scenes (untested):
 
 ## Changelog:
 
-  2020-10-04 - 0.2.0:
+  2020-10-04 - 0.2.1:
 
-  - Add spacebar as another pan when time is locked
+  - Add spacebar as another pan when time is locked (2D like)
 
   2020-05-23 - 0.1.2:
 

@@ -144,13 +144,13 @@ def unlock_time():
         print("not found: bpy.context.window_manager.keyconfigs.user.keymaps['Frames'].keymap_items.get('screen.animation_play')")
 
     # disable (pass if keymap was not registered yet)
-    if not bpy.context.window_manager.keyconfigs.addon.keymaps.get('Frames'):
+    if not bpy.context.window_manager.keyconfigs.addon.keymaps.get('Window'):
         return
-    spacebar_play = bpy.context.window_manager.keyconfigs.addon.keymaps['Frames'].keymap_items.get('screen.animation_play')
+    spacebar_play = bpy.context.window_manager.keyconfigs.addon.keymaps['Window'].keymap_items.get('view3d.move')
     if spacebar_play:
         spacebar_play.active = False
     else:
-        print("not found: .window_manager.keyconfigs.addon.keymaps['Frames'].keymap_items.get('screen.animation_play')")
+        print("not found: .window_manager.keyconfigs.addon.keymaps['Frames'].keymap_items.get('view3d.move')")
         pass
 
 ### === keymaps
@@ -161,10 +161,10 @@ def bind_time_keymap():
     ## add spacebar as third pan shortcut when time is locked (top for laptop) !
     ## Check if hotkey has already been set, to avoid duplicates when auto creating hotkey
     # km = bpy.context.window_manager.keyconfigs.addon.keymaps.get("3D View")
-    km = bpy.context.window_manager.keyconfigs.addon.keymaps.get("3D View")
+    km = bpy.context.window_manager.keyconfigs.addon.keymaps.get("Window")# Screen
     if not km:
         km = bpy.context.window_manager.keyconfigs.addon.keymaps.new(
-            "Screen", space_type='EMPTY', region_type='WINDOW')
+            "Window", space_type='EMPTY', region_type='WINDOW')# Window
 
     thekeymap = km.keymap_items.get("view3d.move")
     if not thekeymap:#"view3d.move" not in km.keymap_items:
@@ -178,9 +178,9 @@ def bind_time_keymap():
         thekeymap.active = True
 
 def unbind_time_keymap():
-    if not bpy.context.window_manager.keyconfigs.addon.keymaps.get("Frames"):
+    if not bpy.context.window_manager.keyconfigs.addon.keymaps.get("Window"):
         return
-    if not bpy.context.window_manager.keyconfigs.addon.keymaps['Frames'].keymap_items.get('screen.animation_play'):
+    if not bpy.context.window_manager.keyconfigs.addon.keymaps['Window'].keymap_items.get('view3d.move'):
         return
 
     for km in addon_time_keymaps:
@@ -275,6 +275,9 @@ def update_state(dummy):
         scene.lockprop.holdframe = scene.frame_current
         if not lock_time_handle.__name__ in [hand.__name__ for hand in bpy.app.handlers.frame_change_pre]:
             bpy.app.handlers.frame_change_pre.append(lock_time_handle)
+        lock_time()
+    else:
+        unlock_time()
 
 ## --- properties
 
