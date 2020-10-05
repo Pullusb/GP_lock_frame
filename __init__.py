@@ -22,7 +22,7 @@ bl_info = {
     "name": "GP lock frame",
     "description": "Paper mode: Lock viewport rotation + lock current frame = Easier 2D still painting",
     "author": "Samuel Bernou",
-    "version": (0, 2, 0),
+    "version": (0, 2, 2),
     "blender": (2, 83, 0),
     "location": "View3D > topbar corner",
     "warning": "",
@@ -146,9 +146,9 @@ def unlock_time():
     # disable (pass if keymap was not registered yet)
     if not bpy.context.window_manager.keyconfigs.addon.keymaps.get('Window'):
         return
-    spacebar_play = bpy.context.window_manager.keyconfigs.addon.keymaps['Window'].keymap_items.get('view3d.move')
-    if spacebar_play:
-        spacebar_play.active = False
+    spacebar_move = bpy.context.window_manager.keyconfigs.addon.keymaps['Window'].keymap_items.get('view3d.move')
+    if spacebar_move:
+        spacebar_move.active = False
     else:
         print("not found: .window_manager.keyconfigs.addon.keymaps['Frames'].keymap_items.get('view3d.move')")
         pass
@@ -279,6 +279,60 @@ def update_state(dummy):
     else:
         unlock_time()
 
+
+
+class PAPERMOD_repair(bpy.types.Operator):
+    bl_idname = "papermod.repair"
+    bl_label = "Repair lock damage"
+    bl_description = "If lock frame or time as modified your pref disable them in viewport > click this button > save Prefs"
+    bl_options = {"REGISTER", "INTERNAL"}
+
+    def execute(self, context):
+        errors = []
+        rot = bpy.context.window_manager.keyconfigs.user.keymaps['3D View'].keymap_items.get('view3d.rotate')
+        if rot:
+            rot.active = True
+        else:
+            errors.append("could not found bpy.context.window_manager.keyconfigs.user.keymaps['3D View'].keymap_items.get('view3d.rotate')")
+
+        second_pan = bpy.context.window_manager.keyconfigs.addon.keymaps['Screen'].keymap_items.get('view3d.move')
+        if second_pan:
+            second_pan.active = False
+
+        play = bpy.context.window_manager.keyconfigs.user.keymaps['Frames'].keymap_items.get('screen.animation_play')
+        if play:
+            play.active = True
+        else:
+            print("not found: bpy.context.window_manager.keyconfigs.user.keymaps['Frames'].keymap_items.get('screen.animation_play')")
+
+        spacebar_move = bpy.context.window_manager.keyconfigs.addon.keymaps['Window'].keymap_items.get('view3d.move')
+        if spacebar_move:
+            spacebar_move.active = False
+        return {"FINISHED"}
+
+## addonprefs
+class PAPERMOD_prefs(bpy.types.AddonPreferences):
+    bl_idname = __name__.split('.')[0]#__name__
+    
+    ## tabs
+    def draw(self, context):
+        layout = self.layout## random color
+        # layout.use_property_split = True
+        col = layout.column()
+        col.label(text='/!\ You do not want to save your user-prefs with the locks ON')
+        col.label(text='Always disable them before saving prefs (they affect the keymap)')
+        layout.separator()
+        layout.label(text='Repair help:')
+        col = layout.column()
+        col.label(text='If the locks have "broken" your navigation and play shortcuts:')
+        col.label(text='- Disable the locks')
+        row = col.row()
+        row.label(text='- Use the "repair" button -->')
+        row.operator('papermod.repair')
+        col.label(text='- Try the shortcuts...')
+        col.label(text='- If Ok, save your userprefs')
+
+
 ## --- properties
 
 class PAPERMOD_PGT_props(bpy.types.PropertyGroup):
@@ -291,8 +345,11 @@ class PAPERMOD_PGT_props(bpy.types.PropertyGroup):
 classes = (
 PAPERMOD_lock_time,
 PAPERMOD_lock_view,
+PAPERMOD_repair,
+
 # PAPERMOD_toolpanel,
 # PAPERMOD_MT_warning,
+PAPERMOD_prefs,
 PAPERMOD_PGT_props,
 )
 
