@@ -38,18 +38,22 @@ Because it use some hacks, it may not work well with multiple scenes (untested):
 
 ## Changelog:
 
-  2020-10-05 19:40:44 - 0.2.2:
+  0.2.3 - 2020-10-10:
+
+  - Added debug prints to explore bug in checks
+
+  0.2.2 - 2020-10-05:
 
   - Added addon pref and a repair button to try a fix if user prefs has been saved with locks-on
 
-  2020-10-04 - 0.2.1:
+  0.2.1 - 2020-10-04:
 
   - Add spacebar as another pan when time is locked (2D like)
 
-  2020-05-23 - 0.1.2:
+  0.1.2 - 2020-05-23:
 
   - Fix: Apply saved locks at file opening or other blend loading (Locks were not applied even when showed as enabled at opening)
 
-  2020-05-15 - 0.1.1:
+  0.1.1 - 2020-05-15:
 
   - version 1
