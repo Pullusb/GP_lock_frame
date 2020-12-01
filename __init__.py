@@ -22,9 +22,9 @@ bl_info = {
     "name": "GP lock frame",
     "description": "Paper mode: Lock viewport rotation + lock current frame = Easier 2D still painting",
     "author": "Samuel Bernou",
-    "version": (0, 2, 3),
+    "version": (0, 3, 0),
     "blender": (2, 83, 0),
-    "location": "View3D > topbar corner",
+    "location": "View3D > topbar right corner",
     "warning": "",
     "doc_url": "https://github.com/Pullusb/GP_lock_frame",
     "category": "Object" }
@@ -102,6 +102,14 @@ def lock_time_handle(scene):
 #         layout.operator(PAPERMOD_lock_view.bl_idname, text = "", icon = 'LOCKVIEW_ON', depress = context.scene.lockprop.view)
 """
 
+def get_mouse_rotate_kmi():
+    for kmi in bpy.context.window_manager.keyconfigs.user.keymaps['3D View'].keymap_items:
+        if kmi.idname == 'view3d.rotate':
+            if kmi.type == 'MIDDLEMOUSE':
+                return kmi
+    if get_addon_prefs().debug:
+        print("Can't find 'view3d.rotate' with MIDDLEMOUSE type in wm.keyconfigs.user.keymaps['3D View']")
+
 class PAPERMOD_lock_view(bpy.types.Operator):
     bl_idname = "papermod.lock_view"
     bl_label = "lock view"
@@ -113,7 +121,9 @@ class PAPERMOD_lock_view(bpy.types.Operator):
         return True
 
     def execute(self, context):
-        if context.window_manager.keyconfigs.user.keymaps['3D View'].keymap_items['view3d.rotate'].active:
+        ## multiple 
+        # if context.window_manager.keyconfigs.user.keymaps['3D View'].keymap_items['view3d.rotate'].active:
+        if get_mouse_rotate_kmi().active:
             lock_orbit()
             context.scene.lockprop.view = True
         else:
@@ -191,10 +201,13 @@ def bind_time_keymap():
         if prefs.debug: print('in bind_time_keymap: addon > Window > view3d.move not exists - create it')#Dbg
         ## OPT: Can check if spacebar is used by the user for this (skip if it's use gor somthing else...)
         # kplay = bpy.context.window_manager.keyconfigs.user.keymaps['Frames'].keymap_items['screen.animation_play']
+        
         ## hardcoded :
-        kmi = km.keymap_items.new(idname='view3d.move', type='SPACE', value='PRESS')
-        addon_time_keymaps.append(km)
-        # addon_keymaps.append((km, kmi))
+        ## Space immediately drag
+        # kmi = km.keymap_items.new(idname='view3d.move', type='SPACE', value='PRESS')
+        ## 2D like (space + continuous click to drag)
+        kmi = km.keymap_items.new(idname='view3d.move', type='LEFTMOUSE', value='PRESS', key_modifier='SPACE')
+        addon_time_keymaps.append((km, kmi))
     else:
         if prefs.debug: print('in bind_time_keymap: addon > Window > view3d.move exists - activate it')#Dbg
         thekeymap.active = True
@@ -205,16 +218,17 @@ def unbind_time_keymap():
     if not bpy.context.window_manager.keyconfigs.addon.keymaps['Window'].keymap_items.get('view3d.move'):
         return
 
-    for km in addon_time_keymaps:
-        for kmi in km.keymap_items:
-            km.keymap_items.remove(kmi)
+    for km, kmi in addon_time_keymaps:
+        km.keymap_items.remove(kmi)
     addon_time_keymaps.clear()
 
 ### --- Orbit keymaps stuff
 
+
 def lock_orbit():
     # deactivate default rotate keymap
-    bpy.context.window_manager.keyconfigs.user.keymaps['3D View'].keymap_items['view3d.rotate'].active = False
+    rot_kmi = get_mouse_rotate_kmi()
+    rot_kmi.active = False
     # bind (or activate if already binded) addon secondary keymap to use rotate cmd as pan
     bind_keymap()
 
@@ -226,12 +240,15 @@ def unlock_orbit():
         print("in unlock_orbit: user > 3D View not found")
         return# pass# return to avoid checking addon keymap ?
     else:
-        rot = bpy.context.window_manager.keyconfigs.user.keymaps['3D View'].keymap_items.get('view3d.rotate')
+        ## since 2.91 there are more than on 'view3d.rotate' idname active
+        # rot = bpy.context.window_manager.keyconfigs.user.keymaps['3D View'].keymap_items.get('view3d.rotate')
+
+        rot = get_mouse_rotate_kmi()
         if rot:
             if prefs.debug: print('in unlock_orbit: user > 3D View > view3d.move exists - (re)activate it')#Dbg
             rot.active = True
         else:
-            print("not found: bpy.context.window_manager.keyconfigs.user.keymaps['3D View'].keymap_items.get('view3d.rotate')")
+            print("not found: user.keymaps['3D View'] 'view3d.rotate' with MIDDLEMOUSE type")
 
     # disable (pass if keymap was not registered yet)
     if not bpy.context.window_manager.keyconfigs.addon.keymaps.get('Screen'):
@@ -264,14 +281,14 @@ def bind_keymap():
     if not thekeymap:#"view3d.move" not in km.keymap_items:
         if prefs.debug: print('in bind_keymap: screen->view3d.move not exists, create entry')#Dbg
 
-        krot = bpy.context.window_manager.keyconfigs.user.keymaps['3D View'].keymap_items['view3d.rotate']
+        # krot = bpy.context.window_manager.keyconfigs.user.keymaps['3D View'].keymap_items['view3d.rotate']
+        krot = get_mouse_rotate_kmi()
         kmov = bpy.context.window_manager.keyconfigs.user.keymaps['3D View'].keymap_items['view3d.move']
         # print(kmov.idname, krot.type, krot.value, krot.any, krot.alt,krot.ctrl, krot.shift)
         kmi = km.keymap_items.new(idname=kmov.idname, type=krot.type , value=krot.value, any=krot.any, alt=krot.alt, ctrl=krot.ctrl, shift=krot.shift)
         ## hardcoded : kmi = km.keymap_items.new(idname='view3d.move', type='MIDDLEMOUSE' , value='PRESS')
 
-        addon_keymaps.append(km)
-        # addon_keymaps.append((km, kmi))
+        addon_keymaps.append((km, kmi))
     else:
         if prefs.debug: print('in bind_keymap: screen->view3d.move exists, activate it')#Dbg
         thekeymap.active = True
@@ -284,9 +301,8 @@ def unbind_keymap():
         # print('GP_lock_frame: Could not found view3d.move addon kmi in addon Screen to unbind custom pan')# Verbose-prints
         return
 
-    for km in addon_keymaps:
-        for kmi in km.keymap_items:
-            km.keymap_items.remove(kmi)
+    for km, kmi in addon_keymaps:
+        km.keymap_items.remove(kmi)
     addon_keymaps.clear()
     # del addon_keymaps
 
