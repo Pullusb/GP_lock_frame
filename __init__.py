@@ -22,7 +22,7 @@ bl_info = {
     "name": "GP lock frame",
     "description": "Paper mode: Lock viewport rotation + lock current frame = Easier 2D still painting",
     "author": "Samuel Bernou",
-    "version": (0, 3, 0),
+    "version": (0, 3, 1),
     "blender": (2, 83, 0),
     "location": "View3D > topbar right corner",
     "warning": "",
@@ -353,11 +353,11 @@ class PAPERMOD_repair(bpy.types.Operator):
         errors = []
 
         ## Rotate
-        rot = bpy.context.window_manager.keyconfigs.user.keymaps['3D View'].keymap_items.get('view3d.rotate')
+        rot = get_mouse_rotate_kmi()
         if rot:
             rot.active = True
         else:
-            errors.append("could not found bpy.context.window_manager.keyconfigs.user.keymaps['3D View'].keymap_items.get('view3d.rotate')")
+            errors.append("could not found bpy.context.window_manager.keyconfigs.user.keymaps['3D View'] 'view3d.rotate' ")
 
         if bpy.context.window_manager.keyconfigs.addon.keymaps.get('Screen'):
             second_pan = bpy.context.window_manager.keyconfigs.addon.keymaps['Screen'].keymap_items.get('view3d.move')

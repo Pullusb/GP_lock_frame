@@ -39,6 +39,10 @@ Because it use some hacks, it may not work well with multiple scenes (untested):
 
 ## Changelog:
 
+0.3.1 - 2020-12-02:
+
+- fix: preference repair operator not working
+
 0.3.0 - 2020-12-02:
 
 - 2.91 update:
