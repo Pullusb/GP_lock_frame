@@ -22,7 +22,7 @@ bl_info = {
     "name": "GP lock frame",
     "description": "Paper mode: Lock viewport rotation + lock current frame = Easier 2D still painting",
     "author": "Samuel Bernou",
-    "version": (0, 3, 1),
+    "version": (0, 3, 2),
     "blender": (2, 83, 0),
     "location": "View3D > topbar right corner",
     "warning": "",
@@ -170,15 +170,24 @@ def unlock_time():
             print("not found: bpy.context.window_manager.keyconfigs.user.keymaps['Frames'].keymap_items.get('screen.animation_play')")
 
     # disable (pass if keymap was not registered yet)
-    if not bpy.context.window_manager.keyconfigs.addon.keymaps.get('Window'):
-        return
-    spacebar_move = bpy.context.window_manager.keyconfigs.addon.keymaps['Window'].keymap_items.get('view3d.move')
-    if spacebar_move:
-        if prefs.debug: print('in unlock_time: addon > Window > view3d.move exists - Disable it')#Dbg
-        spacebar_move.active = False
-    else:
-        print("not found: bpy.context.window_manager.keyconfigs.addon.keymaps['Window'].keymap_items.get('view3d.move')")
-        pass
+    if bpy.context.window_manager.keyconfigs.addon.keymaps.get('Window'):
+        spacebar_move = bpy.context.window_manager.keyconfigs.addon.keymaps['Window'].keymap_items.get('view3d.move')
+        if spacebar_move:
+            if prefs.debug: print('in unlock_time: addon > Window > view3d.move exists - Disable it')#Dbg
+            spacebar_move.active = False
+        else:
+            print("not found: bpy.context.window_manager.keyconfigs.addon.keymaps['Window'].keymap_items.get('view3d.move')")
+            pass
+
+    if bpy.context.window_manager.keyconfigs.addon.keymaps.get('Grease Pencil'):
+        spacebar_move = bpy.context.window_manager.keyconfigs.addon.keymaps['Grease Pencil'].keymap_items.get('view3d.move')
+        if spacebar_move:
+            if prefs.debug: print('in unlock_time: addon > Grease Pencil > view3d.move exists - Disable it')#Dbg
+            spacebar_move.active = False
+        else:
+            print("not found: bpy.context.window_manager.keyconfigs.addon.keymaps['Grease Pencil'].keymap_items.get('view3d.move')")
+            pass
+
 
 ### === keymaps
 
@@ -210,6 +219,22 @@ def bind_time_keymap():
         addon_time_keymaps.append((km, kmi))
     else:
         if prefs.debug: print('in bind_time_keymap: addon > Window > view3d.move exists - activate it')#Dbg
+        thekeymap.active = True
+
+    ## add keymap in Gpencil else doesn't work in draw mode.
+    km = bpy.context.window_manager.keyconfigs.addon.keymaps.get("Grease pencil")# Screen
+    if not km:
+        print('Creating addon "Grease pencil" keymap cat')
+        km = bpy.context.window_manager.keyconfigs.addon.keymaps.new(
+            "Grease Pencil", space_type='EMPTY', region_type='WINDOW')
+    thekeymap = km.keymap_items.get("view3d.move")
+    
+    if not thekeymap:#"view3d.move" not in km.keymap_items:
+        if prefs.debug: print('in bind_time_keymap: addon > Grease Pencil > view3d.move not exists - create it')#Dbg
+        kmi = km.keymap_items.new(idname='view3d.move', type='LEFTMOUSE', value='PRESS', key_modifier='SPACE')
+        addon_time_keymaps.append((km, kmi))
+    else:
+        if prefs.debug: print('in bind_time_keymap: addon > Grease Pencil > view3d.move exists - activate it')#Dbg
         thekeymap.active = True
 
 def unbind_time_keymap():
@@ -350,14 +375,12 @@ class PAPERMOD_repair(bpy.types.Operator):
     bl_options = {"REGISTER", "INTERNAL"}
 
     def execute(self, context):
-        errors = []
-
         ## Rotate
         rot = get_mouse_rotate_kmi()
         if rot:
             rot.active = True
         else:
-            errors.append("could not found bpy.context.window_manager.keyconfigs.user.keymaps['3D View'] 'view3d.rotate' ")
+            print("could not found bpy.context.window_manager.keyconfigs.user.keymaps['3D View'] 'view3d.rotate' ")
 
         if bpy.context.window_manager.keyconfigs.addon.keymaps.get('Screen'):
             second_pan = bpy.context.window_manager.keyconfigs.addon.keymaps['Screen'].keymap_items.get('view3d.move')
@@ -375,6 +398,12 @@ class PAPERMOD_repair(bpy.types.Operator):
             spacebar_move = bpy.context.window_manager.keyconfigs.addon.keymaps['Window'].keymap_items.get('view3d.move')
             if spacebar_move:
                 spacebar_move.active = False
+        
+        if bpy.context.window_manager.keyconfigs.addon.keymaps.get('Grease Pencil'):
+            spacebar_move = bpy.context.window_manager.keyconfigs.addon.keymaps['Grease Pencil'].keymap_items.get('view3d.move')
+            if spacebar_move:
+                spacebar_move.active = False
+
         return {"FINISHED"}
 
 ## addonprefs

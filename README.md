@@ -39,6 +39,11 @@ Because it use some hacks, it may not work well with multiple scenes (untested):
 
 ## Changelog:
 
+0.3.2 - 2020-12-12:
+
+- fix: spacebar + click not working on GP draw mode
+  - draw shortcut was overriding general 'window' keymap, added a specific 'Grease Pencil' keymap
+
 0.3.1 - 2020-12-02:
 
 - fix: preference repair operator not working
